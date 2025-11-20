@@ -30,6 +30,9 @@ async function loadSettings(){
     SETTINGS = await res.json();
     renderSettings(SETTINGS);
     $("#settingsError").style.display = "none";
+    
+    // Save toast preference to localStorage for background script
+    localStorage.setItem('showToasts', SETTINGS.show_toasts !== false);
   }catch(e){
     console.error("[yt-dlp] settings fetch failed", e);
     const box = $("#settingsError");
@@ -51,12 +54,17 @@ async function saveGeneral(){
   SETTINGS.default_dir  = $("#genOutput").value.trim();
   SETTINGS.default_args = $("#genArgs").value.trim();
   SETTINGS.show_toasts  = $("#showToasts").checked;
+  
   try{
     await fetch(`${API}/settings`, {
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body: JSON.stringify(SETTINGS)
     });
+    
+    // Update localStorage for background script access
+    localStorage.setItem('showToasts', SETTINGS.show_toasts);
+    
     toast("Settings saved");
   }catch(e){
     console.error("[yt-dlp] save general failed", e);

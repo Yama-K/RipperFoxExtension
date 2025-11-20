@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "RipperFox",
-  "version": "1.0",
+  "version": "2.1",
   "description": "Right-click anywhere to download videos, GIFs, or images via your local RipperFox backend.",
   "permissions": [
     "contextMenus",

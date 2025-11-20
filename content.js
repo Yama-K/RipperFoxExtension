@@ -10,6 +10,9 @@ function findMediaElement(target) {
   return target.closest("video, img");
 }
 
+document.addEventListener("click", (e) => {
+  if (!e.altKey) return;
+
   const media = findMediaElement(e.target);
   if (!media) return;
 

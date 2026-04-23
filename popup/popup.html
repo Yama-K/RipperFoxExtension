@@ -18,10 +18,23 @@
     button{background:#2b2b2b;font-weight:700;cursor:pointer}
     button:hover{background:#3a3a3a}
     .list{max-height:460px;overflow:auto;padding-right:6px;scrollbar-width:thin;scrollbar-color:#2c2c2c #111}
-    .job{background:var(--surface);border:1px solid var(--border);border-left:3px solid #555;border-radius:8px;padding:6px;margin-bottom:8px}
+    .job{background:var(--surface);border:1px solid var(--border);border-left:3px solid #555;border-radius:8px;padding:8px;margin-bottom:8px}
     .job.ok{border-left-color:var(--ok)}
     .job.run{border-left-color:var(--warn)}
     .job.err{border-left-color:var(--err)}
+    .job-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .job-status-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase}
+    .job-status-badge.downloading{background:#3d5a80;color:#7eb3ff}
+    .job-status-badge.recoding{background:#6b5a3d;color:#ffc97e}
+    .job-status-badge.done{background:#3d663d;color:#7aff7a}
+    .job-status-badge.error{background:#663d3d;color:#ff8080}
+    .progress-container{background:#0d0d0d;border:1px solid var(--border);border-radius:4px;height:6px;margin:6px 0;overflow:hidden}
+    .progress-bar{height:100%;background:#4caf50;transition:width 0.3s ease}
+    .progress-text{font-size:11px;color:var(--muted);margin-top:2px}
+    .job-buttons{display:flex;gap:6px;margin-top:8px}
+    .job-button{flex:1;padding:5px;font-size:12px;background:#2b2b2b;border:1px solid var(--border);color:var(--text);border-radius:4px;cursor:pointer;transition:background 0.2s}
+    .job-button:hover{background:#3a3a3a}
+    .job-button:disabled{opacity:0.5;cursor:not-allowed}
     .muted{color:var(--muted)}
     .site{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:8px}
     .field-label{font-size:11px;color:#a9a9a9;margin-top:6px}

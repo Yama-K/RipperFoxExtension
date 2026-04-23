@@ -151,6 +151,43 @@ $("#saveSite").onclick = async ()=>{
 };
 
 // ---------- downloads ----------
+function parseStatusAndProgress(job) {
+  const status = (job.status || "").toLowerCase();
+  let statusType = "idle";
+  let progress = 0;
+  let progressText = "";
+
+  if (status.includes("error") || status.includes("failed")) {
+    statusType = "error";
+  } else if (status.includes("recod")) {
+    statusType = "recoding";
+    const match = status.match(/recod[^%]*(\d+(?:\.\d+)?%)/i);
+    if (match) {
+      progress = parseFloat(match[1]);
+      progressText = `Recoding: ${progress}%`;
+    } else {
+      progressText = "Recoding video...";
+    }
+  } else if (status.includes("download")) {
+    statusType = "downloading";
+    const match = status.match(/(\d+(?:\.\d+)?%)/);
+    if (match) {
+      progress = parseFloat(match[1]);
+      progressText = `Downloading: ${progress}%`;
+    } else {
+      progressText = "Downloading...";
+    }
+  } else if (status.includes("complet") || status.includes("done") || status.includes("finish")) {
+    statusType = "done";
+    progressText = "Done";
+  } else if (status.includes("run") || status.includes("start")) {
+    statusType = "downloading";
+    progressText = "Starting...";
+  }
+
+  return { statusType, progress, progressText };
+}
+
 async function pollStatus(){
   const stateEl = $("#jobsState");
   const listEl  = $("#jobList");
@@ -172,21 +209,124 @@ async function pollStatus(){
 
     for (const [id, job] of items){
       const div = document.createElement("div");
-      const st = (job.status || "").toLowerCase();
-      div.className = "job " + (st.includes("error") ? "err" : st.startsWith("run")||st.startsWith("start") ? "run" : "ok");
+      const { statusType, progress, progressText } = parseStatusAndProgress(job);
+      div.className = "job " + (statusType === "error" ? "err" : statusType === "downloading" || statusType === "recoding" ? "run" : "ok");
+      
+      const progressBar = progress > 0 ? `
+        <div class="progress-container">
+          <div class="progress-bar" style="width: ${Math.min(progress, 100)}%"></div>
+        </div>
+        <div class="progress-text">${progressText}</div>
+      ` : "";
+
+      const actionButtons = statusType === "done" ? `
+        <div class="job-buttons">
+          <button class="job-button open-file" data-job-id="${id}" data-file-path="${job.file_path || ""}">Open File</button>
+          <button class="job-button show-dir" data-job-id="${id}" data-dir-path="${job.dir || ""}">Show in Directory</button>
+        </div>
+      ` : "";
+
       div.innerHTML = `
-        <b>${job.site || "Unknown site"}</b><br>
-        <small class="muted">${job.url || ""}</small><br>
-        Status: ${job.status}<br>
-        Directory: ${job.dir || ""}
+        <div class="job-header">
+          <b>${job.site || "Unknown site"}</b>
+          <span class="job-status-badge ${statusType}">${statusType === "downloading" ? "Downloading" : statusType === "recoding" ? "Recoding" : statusType === "done" ? "Done" : statusType === "error" ? "Error" : "Processing"}</span>
+        </div>
+        <small class="muted">${job.url || ""}</small>
+        ${progressBar}
+        <small class="muted">Directory: ${job.dir || ""}</small>
+        ${statusType === "error" ? `<div style="color:#ffb3b3;margin-top:6px;font-size:11px">${job.status}</div>` : ""}
+        ${actionButtons}
       `;
+
       listEl.appendChild(div);
+      
+      // Attach event listeners AFTER appending to DOM
+      const openFileBtn = div.querySelector(".open-file");
+      const showDirBtn = div.querySelector(".show-dir");
+      
+      if (openFileBtn) {
+        console.log(`[yt-dlp] Attaching click handler to open file button for job ${id}`);
+        openFileBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log(`[yt-dlp] Open file button clicked for ${job.file_path}`);
+          openFile(id, job.file_path);
+        });
+      } else {
+        console.warn(`[yt-dlp] Could not find open file button for job ${id}`);
+      }
+      
+      if (showDirBtn) {
+        console.log(`[yt-dlp] Attaching click handler to show directory button for job ${id}`);
+        showDirBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log(`[yt-dlp] Show directory button clicked for ${job.dir}`);
+          showInDirectory(id, job.dir);
+        });
+      } else {
+        console.warn(`[yt-dlp] Could not find show directory button for job ${id}`);
+      }
       previousStatuses[id] = job.status;
     }
   }catch(e){
     console.error("[yt-dlp] jobs fetch failed", e);
     stateEl.textContent = "Backend unreachable";
     listEl.innerHTML = "";
+  }
+}
+
+async function openFile(jobId, filePath) {
+  if (!filePath) {
+    toast("File path not available", false);
+    return;
+  }
+  try {
+    console.log(`[yt-dlp] Requesting to open file: ${filePath}`);
+    const response = await browser.runtime.sendMessage({
+      type: "open-file",
+      filePath: filePath
+    });
+    
+    if (response && response.error) {
+      console.error(`[yt-dlp] Error response:`, response.error);
+      toast(`Failed: ${response.error}`, false);
+    } else if (response && response.success) {
+      toast("Opening file...");
+    } else {
+      console.warn(`[yt-dlp] Unexpected response:`, response);
+      toast("Opening file...");
+    }
+  } catch (e) {
+    console.error("[yt-dlp] open file failed", e);
+    toast(`Error: ${e.message}`, false);
+  }
+}
+
+async function showInDirectory(jobId, dirPath) {
+  if (!dirPath) {
+    toast("Directory path not available", false);
+    return;
+  }
+  try {
+    console.log(`[yt-dlp] Requesting to show directory: ${dirPath}`);
+    const response = await browser.runtime.sendMessage({
+      type: "show-directory",
+      dirPath: dirPath
+    });
+    
+    if (response && response.error) {
+      console.error(`[yt-dlp] Error response:`, response.error);
+      toast(`Failed: ${response.error}`, false);
+    } else if (response && response.success) {
+      toast("Opening directory...");
+    } else {
+      console.warn(`[yt-dlp] Unexpected response:`, response);
+      toast("Opening directory...");
+    }
+  } catch (e) {
+    console.error("[yt-dlp] show directory failed", e);
+    toast(`Error: ${e.message}`, false);
   }
 }
 

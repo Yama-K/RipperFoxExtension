@@ -214,6 +214,87 @@ function resetStuckState() {
 }
 
 // ----------------------------------------------------
+// Message Handlers for Popup
+// ----------------------------------------------------
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "open-file") {
+    handleOpenFile(message.filePath).then(sendResponse).catch(err => {
+      console.error("[yt-dlp] Error opening file:", err);
+      sendResponse({ error: err.message });
+    });
+    return true; // Keep channel open for async response
+  } else if (message.type === "show-directory") {
+    handleShowDirectory(message.dirPath).then(sendResponse).catch(err => {
+      console.error("[yt-dlp] Error showing directory:", err);
+      sendResponse({ error: err.message });
+    });
+    return true;
+  }
+});
+
+async function handleOpenFile(filePath) {
+  if (!filePath) throw new Error("No file path provided");
+  try {
+    console.log(`[yt-dlp] Opening file: ${filePath}`);
+    const response = await fetch(`${apiBase}/open-file`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file_path: filePath })
+    });
+    
+    let responseData;
+    try {
+      responseData = await response.clone().json();
+    } catch {
+      responseData = null;
+    }
+    
+    if (!response.ok) {
+      const errorMsg = responseData?.error || `HTTP ${response.status}`;
+      console.error(`[yt-dlp] Backend error opening file: ${errorMsg}`);
+      throw new Error(`Backend error: ${errorMsg}`);
+    }
+    
+    console.log(`[yt-dlp] File opened successfully`, responseData);
+    return { success: true };
+  } catch (e) {
+    console.error("[yt-dlp] Failed to open file:", e);
+    throw e;
+  }
+}
+
+async function handleShowDirectory(dirPath) {
+  if (!dirPath) throw new Error("No directory path provided");
+  try {
+    console.log(`[yt-dlp] Opening directory: ${dirPath}`);
+    const response = await fetch(`${apiBase}/show-directory`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dir_path: dirPath })
+    });
+    
+    let responseData;
+    try {
+      responseData = await response.clone().json();
+    } catch {
+      responseData = null;
+    }
+    
+    if (!response.ok) {
+      const errorMsg = responseData?.error || `HTTP ${response.status}`;
+      console.error(`[yt-dlp] Backend error opening directory: ${errorMsg}`);
+      throw new Error(`Backend error: ${errorMsg}`);
+    }
+    
+    console.log(`[yt-dlp] Directory opened successfully`, responseData);
+    return { success: true };
+  } catch (e) {
+    console.error("[yt-dlp] Failed to show directory:", e);
+    throw e;
+  }
+}
+
+// ----------------------------------------------------
 // Poll Loop (minimal, low overhead)
 // ----------------------------------------------------
 setInterval(checkDownloads, 2000);

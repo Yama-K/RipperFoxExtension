@@ -1,5 +1,5 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 2.1.1,
   "name": "RipperFox",
   "version": "2.1",
   "description": "Right-click anywhere to download videos, GIFs, or images via your local RipperFox backend.",
@@ -41,7 +41,11 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "ripperfox@local",
-      "strict_min_version": "91.0"
+      "strict_min_version": "91.0",
+      "data_collection_permissions": {
+        "data_collection": [],
+        "required": ["none"]
+      }
     }
   }
 }

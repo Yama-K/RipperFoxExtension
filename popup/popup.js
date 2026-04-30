@@ -159,6 +159,9 @@ function parseStatusAndProgress(job) {
 
   if (status.includes("error") || status.includes("failed")) {
     statusType = "error";
+  } else if (status.includes("cancelled")) {
+    statusType = "cancelled";
+    progressText = "Cancelled";
   } else if (status.includes("recod")) {
     statusType = "recoding";
     const match = status.match(/recod[^%]*(\d+(?:\.\d+)?%)/i);
@@ -224,12 +227,16 @@ async function pollStatus(){
           <button class="job-button open-file" data-job-id="${id}" data-file-path="${job.file_path || ""}">Open File</button>
           <button class="job-button show-dir" data-job-id="${id}" data-dir-path="${job.dir || ""}">Show in Directory</button>
         </div>
+      ` : (statusType === "downloading" || statusType === "recoding") ? `
+        <div class="job-buttons">
+          <button class="job-button cancel-download" data-job-id="${id}">Cancel</button>
+        </div>
       ` : "";
 
       div.innerHTML = `
         <div class="job-header">
           <b>${job.site || "Unknown site"}</b>
-          <span class="job-status-badge ${statusType}">${statusType === "downloading" ? "Downloading" : statusType === "recoding" ? "Recoding" : statusType === "done" ? "Done" : statusType === "error" ? "Error" : "Processing"}</span>
+          <span class="job-status-badge ${statusType}">${statusType === "downloading" ? "Downloading" : statusType === "recoding" ? "Recoding" : statusType === "done" ? "Done" : statusType === "error" ? "Error" : statusType === "cancelled" ? "Cancelled" : "Processing"}</span>
         </div>
         <small class="muted">${job.url || ""}</small>
         ${progressBar}
@@ -243,6 +250,7 @@ async function pollStatus(){
       // Attach event listeners AFTER appending to DOM
       const openFileBtn = div.querySelector(".open-file");
       const showDirBtn = div.querySelector(".show-dir");
+      const cancelBtn = div.querySelector(".cancel-download");
       
       if (openFileBtn) {
         console.log(`[yt-dlp] Attaching click handler to open file button for job ${id}`);
@@ -266,6 +274,18 @@ async function pollStatus(){
         });
       } else {
         console.warn(`[yt-dlp] Could not find show directory button for job ${id}`);
+      }
+      
+      if (cancelBtn) {
+        console.log(`[yt-dlp] Attaching click handler to cancel button for job ${id}`);
+        cancelBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log(`[yt-dlp] Cancel button clicked for job ${id}`);
+          cancelDownload(id);
+        });
+      } else {
+        console.warn(`[yt-dlp] Could not find cancel button for job ${id}`);
       }
       previousStatuses[id] = job.status;
     }
@@ -327,6 +347,30 @@ async function showInDirectory(jobId, dirPath) {
   } catch (e) {
     console.error("[yt-dlp] show directory failed", e);
     toast(`Error: ${e.message}`, false);
+  }
+}
+
+async function cancelDownload(jobId) {
+  try {
+    console.log(`[yt-dlp] Requesting cancel for job: ${jobId}`);
+    const response = await fetch(`${API}/cancel/${jobId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log(`[yt-dlp] Cancel response:`, data);
+    toast("Download cancelled", true);
+    
+    // Trigger an immediate refresh of the download list
+    setTimeout(() => pollStatus(), 500);
+  } catch (e) {
+    console.error("[yt-dlp] cancel download failed", e);
+    toast(`Failed to cancel: ${e.message}`, false);
   }
 }
 

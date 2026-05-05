@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
-  "name": "RipperFox",
-  "version": "2.2",
+  "name": "RipperFoxExtension",
+  "version": "2.3",
   "description": "Right-click anywhere to download videos, GIFs, or images via your local RipperFox backend.",
   "permissions": [
     "contextMenus",
@@ -40,7 +40,7 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "ripperfox@local",
+      "id": "ripperfoxextension@local",
       "strict_min_version": "91.0",
       "data_collection_permissions": {
         "data_collection": [],
